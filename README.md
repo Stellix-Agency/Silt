@@ -12,7 +12,7 @@
 ## Installation
 
 ```bash
-bun add @stellix/silt
+bun add "@stellix.agency/silt"
 ```
 
 ---
@@ -48,9 +48,7 @@ AuthForm/
 ## Usage
 
 ```tsx
-import { defineComponent } from "@stellix/silt"
-import { ValidationProvider } from "@stellix/silt/capabilities/validation"
-import { ActionsProvider } from "@stellix/silt/capabilities/actions"
+import { defineComponent, ValidationProvider, ActionsProvider } from "@stellix.agency/silt"
 import { Header, Fields, Submit, FormError } from "./slots"
 import * as schemas from "./schemas"
 import * as actions from "./actions"
@@ -76,8 +74,7 @@ export const AuthForm = defineComponent({
 Inside a slot, consume context via hooks:
 
 ```tsx
-import { useComponent } from "@stellix/silt"
-import { useValidation } from "@stellix/silt/capabilities/validation"
+import { useComponent, useValidation } from "@stellix.agency/silt"
 
 export function Fields() {
   const { state, set } = useComponent<{ email: string; password: string }>()
@@ -103,10 +100,10 @@ Capabilities extend the component with pluggable behaviors.
 Provides Zod-based validation via `useValidation()`.
 
 ```ts
-import { useValidation } from "@stellix/silt/capabilities/validation"
+import { useValidation } from "@stellix.agency/silt"
 
 const { errors, validate } = useValidation()
-validate("login") // runs the "login" schema
+validate("login") // Runs the "login" schema
 ```
 
 ### `withActions`
@@ -114,10 +111,10 @@ validate("login") // runs the "login" schema
 Provides async action runners via `useActions()`.
 
 ```ts
-import { useActions } from "@stellix/silt/capabilities/actions"
+import { useActions } from "@stellix.agency/silt"
 
 const { run, loading, error } = useActions()
-await run("login")
+await run("login") // Runs the "login" action
 ```
 
 ---
