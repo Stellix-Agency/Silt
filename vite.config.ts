@@ -10,6 +10,7 @@ export default defineConfig({
       formats: ["es"],
       fileName: "index",
     },
+    emptyOutDir: false,
     rollupOptions: { external: ["solid-js", "solid-js/store", "solid-js/web", "zod"] },
   },
 });
