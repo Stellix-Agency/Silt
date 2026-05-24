@@ -1,5 +1,5 @@
 {
-  "name": "@stellix-agency/silt",
+  "name": "@stellix.agency/silt",
   "description": "A declarative, capability-driven component framework for SolidJS. Developed by Stellix Agency.",
   "author": "Stellix Agency — Engineering",
   "contributors": [
@@ -12,9 +12,9 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/stellix-agency/silt.git"
+    "url": "https://github.com/Stellix-Agency/Silt.git"
   },
-  "homepage": "https://github.com/stellix-agency/silt#readme",
+  "homepage": "https://github.com/Stellix-Agency/Silt#readme",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -26,7 +26,7 @@
   },
   "scripts": {
     "build:types": "tsc -p tsconfig.json",
-    "build": "npm run build:types && vite build",
+    "build": "bun run build:types && vite build",
     "dev": "vite",
     "prepublishOnly": "npm run build"
   },
@@ -36,7 +36,7 @@
   },
   "keywords": ["solidjs", "component", "library", "typescript", "stellix"],
   "bugs": {
-    "url": "https://github.com/stellix-agency/silt/issues"
+    "url": "https://github.com/Stellix-Agency/Silt/issues"
   },
   "devDependencies": {
     "vite": "^5.0.0",
