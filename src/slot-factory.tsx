@@ -1,4 +1,4 @@
-import { createContext, useContext, ParentComponent, Context } from "solid-js"
+import type { ParentComponent, Context } from "solid-js"
 import type { ComponentContext } from "./types"
 
 /**
@@ -7,42 +7,34 @@ import type { ComponentContext } from "./types"
  * in the component's context, giving it automatic access to state, actions, validation.
  *
  * @param contextProvider The component's internal context provider
+ * @param contextValue The context value to provide
  * @param declaredSlots Optional list of slot names this component supports
  * @returns Record of named slot components (e.g., { Icon: ..., Label: ... })
  *
  * @example
- * const [componentCtx, slotComponents] = createSlotFactory(
+ * const slotComponents = createSlotFactory(
  *   componentContext,
  *   { state, set },
  *   ["Icon", "Label"]
  * )
- * // Usage in component:
- * export const Button = defineComponent({
- *   definition: { name: "Button", state: { ... }, slots: ["Icon", "Label"] },
- *   slotComponents: slotComponents
- * })
- * // Consumer usage:
- * <Button><Button.Icon>ArrowRight</Button.Icon></Button>
+ * // Usage in component render:
+ * {slots.Icon && <slots.Icon>content</slots.Icon>}
  */
 export function createSlotFactory<TState extends Record<string, unknown>>(
-  componentContextInstance: Context<ComponentContext<TState>>,
+  ContextInstance: Context<ComponentContext<TState> | undefined>,
   contextValue: ComponentContext<TState>,
   declaredSlots?: string[]
 ): Record<string, ParentComponent> {
   const slots: Record<string, ParentComponent> = {}
-
   const slotNames = declaredSlots || []
 
   for (const slotName of slotNames) {
     // Create a slot component that wraps children in the context provider
-    const SlotComponent: ParentComponent = (props) => {
-      return (
-        <componentContextInstance.Provider value={contextValue}>
-          {props.children}
-        </componentContextInstance.Provider>
-      )
-    }
-    SlotComponent.displayName = slotName
+    const SlotComponent: ParentComponent = (props) => (
+      <ContextInstance.Provider value={contextValue}>
+        {props.children}
+      </ContextInstance.Provider>
+    )
     slots[slotName] = SlotComponent
   }
 

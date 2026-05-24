@@ -123,5 +123,5 @@ export function defineComponent<TState extends Record<string, unknown>>(
     }
   }
 
-  return ComponentFactory as ComposableComponent<TState>
+  return ComponentFactory as unknown as ComposableComponent<TState>
 }
