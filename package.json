@@ -4,11 +4,11 @@
   "author": "Stellix Agency — Engineering",
   "contributors": [
     {
-        "name": "Yanis YOUSFI",
-        "email": "y.yousfi@stellix.agency"
+      "name": "Yanis YOUSFI",
+      "email": "y.yousfi@stellix.agency"
     }
   ],
-  "version": "1.0.0",
+  "version": "1.1.0",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -42,8 +42,7 @@
     "vite": "^5.0.0",
     "vite-plugin-solid": "^2.0.0",
     "typescript": "^5.0.0"
-  }
-  ,
+  },
   "files": ["dist"],
   "sideEffects": false
 }
