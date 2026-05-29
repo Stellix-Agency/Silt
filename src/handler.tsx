@@ -1,127 +1,145 @@
-import type { Component, ParentComponent } from "solid-js"
-import { createStore } from "solid-js/store"
-import { componentContext } from "./context"
-import type { ComponentDefinition, SlotRecord, CapabilityEntry, ComponentContext, LayoutFn, ComposableComponent } from "./types"
-import { createSlotFactory } from "./slot-factory"
+import type { CapabilityEntry, ComponentContext, ComposableComponent } from "@/types";
+import type { Component, JSXElement, ParentComponent, ParentProps } from "solid-js";
+import { createContext, createRenderEffect, createSignal, useContext } from "solid-js";
+import { createStore } from "solid-js/store";
+import { componentContext } from "@/context";
 
-/** Options used to create a component instance. */
-interface ComponentOptions<TState extends Record<string, unknown>> {
-  /** The declarative component definition */
-  definition: ComponentDefinition<TState>
-  /** Slots provided by the host (legacy) */
-  slots?: SlotRecord
-  /** Optional layout wrapper that receives rendered slots */
-  layout?: LayoutFn
-  /** Optional capabilities applied as providers around the component */
-  capabilities?: CapabilityEntry[]
-  /** Component render function that uses slots */
-  render?: (props: {
-    slots: Record<string, ParentComponent>
-  }) => any
-}
+/** Internal context: attached slot sub-components write their children here */
+const slotCollectorContext = createContext<((name: string, content: JSXElement) => void) | undefined>(undefined);
+
+/** A slot component created via defineSlot, accepts optional consumer content */
+type SlotComponent = Component<{ content?: ParentComponent }>;
+
+/** Map of slot name → Slot component */
+type SlotMap = Record<string, SlotComponent>;
+
+/** Props accepted by any composable component: children, class, and all state keys as overrides */
+type ComponentProps<TState extends Record<string, unknown>> =
+  ParentProps & { class?: string } & Partial<TState>;
+
+/** Options used to create a component instance */
+interface ComponentOptions<
+  TState extends Record<string, unknown>,
+  TSlots extends SlotMap = {}
+> {
+  name: string;
+  state: TState;
+  /** Map slot names to their slot components. The framework wires consumer content automatically */
+  slots?: TSlots;
+  capabilities?: CapabilityEntry[];
+  render: (slots: { [K in keyof TSlots]: Component }) => JSXElement;
+};
 
 /**
- * Create a renderable component from a `ComponentDefinition` and slots.
- * The returned component wires state, optional layout and capability providers.
- *
- * **Composable slots pattern:**
- * When `definition.slots` is defined and a `render` function is provided,
- * the returned component has sub-components attached (e.g., Button.Icon, Button.Label).
- * These sub-components automatically have access to the parent's state via useComponent().
+ * Create a composable component with state, named slots and optional capabilities
+ * Each key in `slots` maps a slot name to its slot component (created via defineSlot)
+ * In `render`, each slot is already wired, just call `<Header />` directly
  *
  * @example
  * ```tsx
- * const Button = defineComponent({
- *   definition: {
- *     name: "Button",
- *     state: { loading: false },
- *     slots: ["Icon", "Label"]
- *   },
- *   render: ({ slots }) => (
- *     <button>
- *       {slots.Icon && <slots.Icon />}
- *       {slots.Label && <slots.Label />}
- *     </button>
- *   )
- * })
+ * const AuthForm = defineComponent({
+ *   name: "AuthForm",
+ *   state: initialState,
+ *   slots: { Header: HeaderSlot, Footer: FooterSlot },
+ *   render: ({ slots: { Header, Footer } }) => (
+ *     <form>
+ *       <Header />
+ *       <FieldsSlot />
+ *       <Footer />
+ *     </form>
+ *   ),
+ * });
  *
- * // Consumer usage:
- * <Button>
- *   <Button.Icon>ArrowRight</Button.Icon>
- *   <Button.Label>Send</Button.Label>
- * </Button>
+ * // Consumer:
+ * <AuthForm>
+ *   <AuthForm.Header><h2>Welcome</h2></AuthForm.Header>
+ *   <AuthForm.Footer>Sign in</AuthForm.Footer>
+ * </AuthForm>
  * ```
- */
-export function defineComponent<TState extends Record<string, unknown>>(
-  options: ComponentOptions<TState>
-): ComposableComponent<TState> {
-  const { definition, slots: legacySlots, layout, capabilities = [], render } = options
+*/
+export function defineComponent<
+  TState extends Record<string, unknown>,
+  TSlots extends SlotMap = {}
+>(
+  options: ComponentOptions<TState, TSlots>
+): ComposableComponent<TState, Extract<keyof TSlots, string>> {
+  const { state: initialState, slots: declaredSlots = {} as TSlots, capabilities = [], render } = options;
+  const slotNames = Object.keys(declaredSlots);
+  const stateKeys = Object.keys(initialState);
 
-  // The factory function that creates the actual component instance
-  const ComponentFactory = () => {
-    const [state, setState] = createStore<TState>({ ...definition.state })
+  const ComponentFactory = (props: ComponentProps<TState>) => {
+    const [state, setState] = createStore<TState>({ ...initialState });
 
     function set(key: keyof TState, value: unknown) {
       setState(key as any, value as any)
-    }
+    };
 
-    const ctx: ComponentContext<TState> = { state, set }
+    createRenderEffect(() => {
+      for (const key of stateKeys) {
+        const val = (props as Partial<TState>)[key as keyof TState];
+        if (val !== undefined) setState(key as any, val as any);
+      };
+    });
 
-    // Create composable slot sub-components if slots are declared
-    const slotComponents = definition.slots
-      ? createSlotFactory(componentContext, ctx, definition.slots)
-      : {}
+    const ctx: ComponentContext<TState> = { state, set, class: props.class };
 
-    const renderContent = () => {
-      if (render) {
-        // Composable pattern: render function receives slots
-        return (
-          <componentContext.Provider value={ctx}>
-            {render({ slots: slotComponents })}
-          </componentContext.Provider>
-        )
-      } else if (legacySlots) {
-        // Legacy pattern: static slots
-        const Slots: Component = () => {
-          return (
-            <componentContext.Provider value={ctx}>
-              {layout
-                ? layout(<>{Object.values(legacySlots).map((Slot) => <Slot />)}</>)
-                : Object.values(legacySlots).map((Slot) => <Slot />)}
-            </componentContext.Provider>
-          )
-        }
-        return <Slots />
-      }
-      return null
-    }
+    // One signal per slot, consumer sub-components write here
+    const slotSignals: Record<string, ReturnType<typeof createSignal<JSXElement>>> = {};
+    for (const slotName of slotNames) {
+      slotSignals[slotName] = createSignal<JSXElement>(undefined);
+    };
+
+    const registerSlot = (name: string, content: JSXElement) => {
+      slotSignals[name]?.[1](content)
+    };
+
+    // Each slot in render is already wired: () => <SlotComponent content={consumerContent} />
+    const wiredSlots = new Proxy({} as Record<string, Component>, {
+      get(_, name: string) {
+        const signal = slotSignals[name];
+        const SlotComponent = (declaredSlots as SlotMap)[name];
+        if (!signal || !SlotComponent) return undefined;
+
+        const [content] = signal;
+        return () => {
+          const ConsumerContent = content() !== undefined ? (() => <>{content()}</>) : undefined;
+          return <SlotComponent content={ConsumerContent} />;
+        };
+      },
+    });
+
+    const renderContent = () => (
+      <slotCollectorContext.Provider value={registerSlot}>
+        {props.children}
+        <componentContext.Provider value={ctx}>
+          {render(wiredSlots as { [K in keyof TSlots]: Component })}
+        </componentContext.Provider>
+      </slotCollectorContext.Provider>
+    );
 
     const Wrapped = capabilities.reduce(
-      (Inner, { Provider, props }) => {
-        return () => (
-          <Provider {...props} state={state}>
-            <Inner />
-          </Provider>
-        )
-      },
+      (Inner, { Provider, props: providerProps }) => () => (
+        <Provider {...providerProps} state={state}>
+          <Inner />
+        </Provider>
+      ),
       renderContent as Component
-    )
+    );
 
-    return <Wrapped />
+    return <Wrapped />;
+  };
+
+  // Attach slot sub-components, collect consumer content into parent signals
+  for (const slotName of slotNames) {
+    Object.assign(ComponentFactory, {
+      [slotName]: (props: ParentProps) => {
+        const register = useContext(slotCollectorContext);
+        register?.(slotName, props.children);
+
+        return null;
+      },
+    })
   }
 
-  // Attach slot sub-components to the component factory function.
-  // These provide the consumer API: <Button><Button.Icon>...</Button.Icon></Button>
-  // The actual wiring happens inside the render when consumers include these slots.
-  if (definition.slots) {
-    for (const slotName of definition.slots) {
-      // Each slot is a pass-through wrapper. The real slot component is created
-      // in the factory and passed through the render function.
-      ;(ComponentFactory as any)[slotName] = ((props: any) => {
-        return <>{props.children}</>
-      }) as ParentComponent
-    }
-  }
-
-  return ComponentFactory as unknown as ComposableComponent<TState>
-}
+  return ComponentFactory as unknown as ComposableComponent<TState, Extract<keyof TSlots, string>>;
+};

@@ -1,37 +1,47 @@
-import { createSignal } from "solid-js"
-import { createContextProvider } from "../context"
-import type { ZodSchema } from "zod"
+import type { ZodSchema } from "zod";
+import { createSignal } from "solid-js";
+import { createContextProvider } from "@/context";
 
-/** Record of named zod schemas used for validation */
-export type SchemaRecord = Record<string, ZodSchema>
+/** Named map of Zod schemas, keyed by the field or form section they validate */
+export type SchemaRecord = Record<string, ZodSchema>;
 
 /**
- * Provider + hook pair that expose `errors` and a `validate` helper.
- * `validate` runs the named schema against the provided `state`.
- */
+ * Capability that adds Zod-based validation to a component
+ *
+ * Provides:
+ * - `errors()` : reactive map of `{ fieldName: errorMessage }`
+ * - `validate(schemaKey)` : runs the named schema against current state;
+ *   returns `true` on success, `false` and populates `errors()` on failure
+ *
+ * Mount via `capabilities` in `defineComponent`:
+ * ```ts
+ * { Provider: ValidationProvider, props: { schemas: mySchemas } }
+ * ```
+*/
 export const [ValidationProvider, useValidation] = createContextProvider(
-  (props: { state: any; schemas: SchemaRecord }) => {
-    const [errors, setErrors] = createSignal<Record<string, string>>({})
+  (props: { state: Record<string, unknown>; schemas: SchemaRecord }) => {
+    const [errors, setErrors] = createSignal<Record<string, string>>({});
 
-    function validate(schemaKey: string) {
-      const schema = props.schemas[schemaKey]
-      if (!schema) return true
+    function validate(schemaKey: string): boolean {
+      const schema = props.schemas[schemaKey];
+      if (!schema) return true;
 
-      const result = schema.safeParse(props.state)
+      const result = schema.safeParse(props.state);
       if (!result.success) {
         setErrors(
-          result.error.issues.reduce((acc, issue) => ({
+          result.error.issues.reduce<Record<string, string>>((acc, issue) => ({
             ...acc,
-            [issue.path[0]]: issue.message,
+            [String(issue.path[0])]: issue.message,
           }), {})
         )
-        return false
+
+        return false;
       }
 
-      setErrors({})
-      return true
+      setErrors({});
+      return true;
     }
 
-    return { errors, validate }
+    return { errors, validate };
   }
-)
+);

@@ -1,8 +1,6 @@
 {
+  "extends": "./tsconfig.json",
   "compilerOptions": {
-    "paths": {
-      "@/*": ["./src/*"]
-    },
     "jsx": "preserve",
     "jsxImportSource": "solid-js",
     "noEmit": false,
