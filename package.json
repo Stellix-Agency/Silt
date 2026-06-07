@@ -26,7 +26,7 @@
   },
   "scripts": {
     "build:types": "tsc -p tsconfig.build.json",
-    "build": "bun run build:types && vite build",
+    "build": "bun run vite build && bun run build:tokens",
     "dev": "vite",
     "prepublishOnly": "bun run build"
   },
@@ -34,14 +34,26 @@
     "solid-js": "^1.9.13",
     "zod": "^4.4.3"
   },
-  "keywords": ["solidjs", "component", "library", "typescript", "stellix"],
-  "bugs": {"url": "https://github.com/Stellix-Agency/Silt/issues"},
+  "keywords": [
+    "solidjs",
+    "component",
+    "library",
+    "typescript",
+    "stellix"
+  ],
+  "bugs": {
+    "url": "https://github.com/Stellix-Agency/Silt/issues"
+  },
   "devDependencies": {
+    "@types/bun": "^1.3.14",
     "class-variance-authority": "^0.7.1",
     "typescript": "^6.0.3",
     "vite": "^8.0.14",
     "vite-plugin-solid": "^2.11.12"
   },
-  "files": ["dist"],
+  "files": [
+    "dist",
+    "scripts"
+  ],
   "sideEffects": false
 }

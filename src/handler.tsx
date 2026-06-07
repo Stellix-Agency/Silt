@@ -1,7 +1,7 @@
 import type { CapabilityEntry, ComponentContext, ComposableComponent } from "@/types";
 import type { Component, JSXElement, ParentComponent, ParentProps } from "solid-js";
 import { createContext, createRenderEffect, createSignal, useContext } from "solid-js";
-import { createStore } from "solid-js/store";
+import { createStore, produce } from "solid-js/store";
 import { componentContext } from "@/context";
 
 /** Internal context: attached slot sub-components write their children here */
@@ -71,14 +71,16 @@ export function defineComponent<
     const [state, setState] = createStore<TState>({ ...initialState });
 
     function set(key: keyof TState, value: unknown) {
-      setState(key as any, value as any)
+      setState(produce((s) => { (s as any)[key] = value; }));
     };
 
     createRenderEffect(() => {
-      for (const key of stateKeys) {
-        const val = (props as Partial<TState>)[key as keyof TState];
-        if (val !== undefined) setState(key as any, val as any);
-      };
+      setState(produce((s) => {
+        for (const key of stateKeys) {
+          const val = (props as Partial<TState>)[key as keyof TState];
+          if (val !== undefined) (s as any)[key] = val;
+        }
+      }));
     });
 
     const ctx: ComponentContext<TState> = { state, set, class: props.class };
