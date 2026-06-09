@@ -7,6 +7,11 @@ import { componentContext } from "@/context";
 /** Internal context: attached slot sub-components write their children here */
 const slotCollectorContext = createContext<((name: string, content: JSXElement) => void) | undefined>(undefined);
 
+const SlotBoundary: ParentComponent = (p) => {
+  createRenderEffect(() => { p.children; });
+  return null;
+};
+
 /** A slot component created via defineSlot, accepts optional consumer content */
 type SlotComponent = Component<{ content?: ParentComponent }>;
 
@@ -68,7 +73,12 @@ export function defineComponent<
   const stateKeys = Object.keys(initialState);
 
   const ComponentFactory = (props: ComponentProps<TState>) => {
-    const [state, setState] = createStore<TState>({ ...initialState });
+    const initial = { ...initialState };
+    for (const key of stateKeys) {
+      const val = (props as Partial<TState>)[key as keyof TState];
+      if (val !== undefined) (initial as any)[key] = val;
+    }
+    const [state, setState] = createStore<TState>(initial);
 
     function set(key: keyof TState, value: unknown) {
       setState(produce((s) => { (s as any)[key] = value; }));
@@ -85,7 +95,6 @@ export function defineComponent<
 
     const ctx: ComponentContext<TState> = { state, set, class: props.class };
 
-    // One signal per slot, consumer sub-components write here
     const slotSignals: Record<string, ReturnType<typeof createSignal<JSXElement>>> = {};
     for (const slotName of slotNames) {
       slotSignals[slotName] = createSignal<JSXElement>(undefined);
@@ -95,7 +104,6 @@ export function defineComponent<
       slotSignals[name]?.[1](content)
     };
 
-    // Each slot in render is already wired: () => <SlotComponent content={consumerContent} />
     const wiredSlots = new Proxy({} as Record<string, Component>, {
       get(_, name: string) {
         const signal = slotSignals[name];
@@ -112,7 +120,7 @@ export function defineComponent<
 
     const renderContent = () => (
       <slotCollectorContext.Provider value={registerSlot}>
-        {props.children}
+        <SlotBoundary>{props.children}</SlotBoundary>
         <componentContext.Provider value={ctx}>
           {render(wiredSlots as { [K in keyof TSlots]: Component })}
         </componentContext.Provider>
@@ -131,7 +139,6 @@ export function defineComponent<
     return <Wrapped />;
   };
 
-  // Attach slot sub-components, collect consumer content into parent signals
   for (const slotName of slotNames) {
     Object.assign(ComponentFactory, {
       [slotName]: (props: ParentProps) => {
