@@ -8,3 +8,4 @@ export { defineComponent } from "./handler";
 export { defineSlot } from "./slot";
 export { useComponent } from "./context";
 export { ValidationProvider, useValidation, ActionsProvider, useActions } from "./capabilities";
+export { createLazyMount } from "./lazy-mount";
