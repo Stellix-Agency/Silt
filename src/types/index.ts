@@ -13,6 +13,9 @@ export interface ComponentContext<TState extends Record<string, unknown>> {
   /** Update a single state key */
   set: (key: keyof TState, value: unknown) => void
 
+  /** Whether the consumer provided content for the named slot (e.g. `hasSlot("Label")`) */
+  hasSlot: (name: string) => boolean
+
   /** CSS class passed from outside the component, applied to the root element */
   class?: string
 };

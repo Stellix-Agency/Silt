@@ -93,12 +93,13 @@ export function defineComponent<
       }));
     });
 
-    const ctx: ComponentContext<TState> = { state, set, class: props.class };
-
     const slotSignals: Record<string, ReturnType<typeof createSignal<JSXElement>>> = {};
     for (const slotName of slotNames) {
       slotSignals[slotName] = createSignal<JSXElement>(undefined);
     };
+
+    const hasSlot = (name: string) => slotSignals[name]?.[0]() !== undefined;
+    const ctx: ComponentContext<TState> = { state, set, hasSlot, class: props.class };
 
     const registerSlot = (name: string, content: JSXElement) => {
       slotSignals[name]?.[1](content)
