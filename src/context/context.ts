@@ -1,4 +1,4 @@
-import type { ComponentContext } from "@/types";
+import type { ComponentContext } from "../types";
 import { createContext, useContext } from "solid-js";
 
 /** Internal Solid context carrying the active component's state and setter */

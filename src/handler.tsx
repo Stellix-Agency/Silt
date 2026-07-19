@@ -1,8 +1,8 @@
-import type { CapabilityEntry, ComponentContext, ComposableComponent } from "@/types";
+import type { CapabilityEntry, ComponentContext, ComposableComponent } from "./types";
 import type { Component, JSXElement, ParentComponent, ParentProps } from "solid-js";
 import { createContext, createRenderEffect, createSignal, useContext } from "solid-js";
 import { createStore, produce } from "solid-js/store";
-import { componentContext } from "@/context";
+import { componentContext } from "./context";
 
 /** Internal context: attached slot sub-components write their children here */
 const slotCollectorContext = createContext<((name: string, content: JSXElement) => void) | undefined>(undefined);

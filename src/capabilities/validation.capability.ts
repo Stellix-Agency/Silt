@@ -1,6 +1,6 @@
 import type { ZodSchema } from "zod";
 import { createSignal } from "solid-js";
-import { createContextProvider } from "@/context";
+import { createContextProvider } from "../context";
 
 /** Named map of Zod schemas, keyed by the field or form section they validate */
 export type SchemaRecord = Record<string, ZodSchema>;

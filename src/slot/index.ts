@@ -1,7 +1,7 @@
 import type { Component, JSXElement, ParentComponent } from "solid-js";
-import type { ComponentContext } from "@/types";
+import type { ComponentContext } from "../types";
 import { createComponent } from "solid-js";
-import { useComponent } from "@/context";
+import { useComponent } from "../context";
 
 /**
  * Define a structural slot component for use inside `defineComponent`

@@ -1,5 +1,5 @@
 import { createSignal } from "solid-js";
-import { createContextProvider } from "@/context";
+import { createContextProvider } from "../context";
 
 /** Named map of async actions, each receives the current component state */
 export type ActionRecord = Record<string, (state: Record<string, unknown>) => Promise<void>>;
