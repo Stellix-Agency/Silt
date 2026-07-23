@@ -84,11 +84,14 @@ export function defineComponent<
       setState(produce((s) => { (s as any)[key] = value; }));
     };
 
+    // Keep state in sync with controlled props. A prop is treated as controlled when the
+    // key is *present* on props — so passing an explicit `undefined` (or a value that
+    // becomes undefined) clears the state back to undefined instead of keeping the last
+    // value. Absent keys are left untouched, so uncontrolled usage still works via `set`.
     createRenderEffect(() => {
       setState(produce((s) => {
         for (const key of stateKeys) {
-          const val = (props as Partial<TState>)[key as keyof TState];
-          if (val !== undefined) (s as any)[key] = val;
+          if (key in props) (s as any)[key] = (props as any)[key];
         }
       }));
     });

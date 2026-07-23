@@ -8,8 +8,9 @@ export type ActionRecord = Record<string, (state: Record<string, unknown>) => Pr
  * Capability that adds async action execution to a component.
  *
  * Provides:
- * - `loading()` : `true` while an action is running.
- * - `error()` : last action error message, `undefined` when none.
+ * - `loading(key?)` : `true` while an action runs. Without a key, `true` if *any* action
+ *   is running; with a key, only that action.
+ * - `error(key?)` : without a key, the last action error; with a key, that action's error.
  * - `run(actionKey)` : executes the named action; manages loading/error automatically.
  *
  * Mount via `capabilities` in `defineComponent`:
@@ -19,21 +20,31 @@ export type ActionRecord = Record<string, (state: Record<string, unknown>) => Pr
 */
 export const [ActionsProvider, useActions] = createContextProvider(
   (props: { state: Record<string, unknown>; actions: ActionRecord }) => {
-    const [loading, setLoading] = createSignal(false);
-    const [error, setError] = createSignal<string | undefined>();
+    const [running, setRunning] = createSignal<Record<string, boolean>>({});
+    const [errors, setErrors] = createSignal<Record<string, string | undefined>>({});
+    const [lastError, setLastError] = createSignal<string | undefined>();
+
+    const loading = (actionKey?: string): boolean =>
+      actionKey ? !!running()[actionKey] : Object.values(running()).some(Boolean);
+
+    const error = (actionKey?: string): string | undefined =>
+      actionKey ? errors()[actionKey] : lastError();
 
     async function run(actionKey: string): Promise<void> {
       const action = props.actions[actionKey];
       if (!action) return;
 
-      setLoading(true);
-      setError(undefined);
+      setRunning((prev) => ({ ...prev, [actionKey]: true }));
+      setErrors((prev) => ({ ...prev, [actionKey]: undefined }));
+      setLastError(undefined);
       try {
         await action(props.state);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
+        const message = err instanceof Error ? err.message : "An error occurred";
+        setErrors((prev) => ({ ...prev, [actionKey]: message }));
+        setLastError(message);
       } finally {
-        setLoading(false);
+        setRunning((prev) => ({ ...prev, [actionKey]: false }));
       }
     }
 
